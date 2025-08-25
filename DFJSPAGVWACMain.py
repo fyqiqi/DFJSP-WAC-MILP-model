@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from DFJSPDATAREAD import read_and_convert_file
 from DFJSPAGVWACMIP import MIPModel
 
-filename = 'FJSSPinstances/MK/instance7.txt'
+filename = 'FJSSPinstances/MK/instance2.txt'
 Data = read_and_convert_file(filename)
 print('data_j', Data['J'], Data['OJ'])
 print('DATA_operations_machines', Data['operations_machines'])
@@ -71,7 +71,7 @@ if mipmodel.status in [GRB.OPTIMAL, GRB.TIME_LIMIT, GRB.INTERRUPTED]:
         for j in J:
             for i in OJ[(f, j)]:
                 for k in operations_machines[(f, j, i)]:
-                    if mipmodel.getVarByName(f"x_{j}_{i}_{f}_{k}").X > 0.5:
+                    if mipmodel.getVarByName(f"Y_{j}_{i}_{f}_{k}").X > 0.5:
                         start = mipmodel.getVarByName(f"s_{j}_{i}_{f}").X
                         duration = operations_times[(f, j, i, k)]
                         machine_schedule.setdefault(f"{f}_{k}", []).append({
@@ -90,7 +90,7 @@ if mipmodel.status in [GRB.OPTIMAL, GRB.TIME_LIMIT, GRB.INTERRUPTED]:
             for i in OJ[(f, j)]:
                 if mipmodel.getVarByName(f"eta_{j}_{i}_{f}").X > 0.5:
                     for r in A[f-1]:
-                        if mipmodel.getVarByName(f"mu_{j}_{i}_{f}_{r}").X > 0.5:
+                        if mipmodel.getVarByName(f"Z_{j}_{i}_{f}_{r}").X > 0.5:
                             start = mipmodel.getVarByName(f"ST_{j}_{i}_{f}").X
                             duration = mipmodel.getVarByName(f"Tt_{j}_{i}_{f}").X
                             agv_schedule.setdefault(f"{f}_{r}", []).append({
@@ -108,11 +108,11 @@ if mipmodel.status in [GRB.OPTIMAL, GRB.TIME_LIMIT, GRB.INTERRUPTED]:
         for j in J:
             for i in OJ[(f, j)]:
                 for w in W[f-1]:
-                    var = mipmodel.getVarByName(f"gamma_{j}_{i}_{f}_{w}")
+                    var = mipmodel.getVarByName(f"V_{j}_{i}_{f}_{w}")
                     for k in operations_machines[(f, j, i)]:
-                        var2 = mipmodel.getVarByName(f"x_{j}_{i}_{f}_{k}")
+                        var2 = mipmodel.getVarByName(f"Y_{j}_{i}_{f}_{k}")
                         if var is not None and var.X > 0.5 and var2.X > 0.5:
-                            start = mipmodel.getVarByName(f"MT_{j}_{i}_{f}").X
+                            start = mipmodel.getVarByName(f"SR_{j}_{i}_{f}").X
                             duration = operations_times[f,j,i,k]/2  # monitoring_time
                             worker_schedule.setdefault(f"{f}_{w}", []).append({
                                 'job': j,
@@ -129,7 +129,7 @@ if mipmodel.status in [GRB.OPTIMAL, GRB.TIME_LIMIT, GRB.INTERRUPTED]:
         for j in J:
             for i in OJ[(f, j)]:
                 for w in W[f-1]:
-                    var = mipmodel.getVarByName(f"mu_w_{j}_{i}_{f}_{w}")
+                    var = mipmodel.getVarByName(f"Z_w_{j}_{i}_{f}_{w}")
                     if var is not None and var.X > 0.5:
                         start = mipmodel.getVarByName(f"ST_{j}_{i}_{f}").X
                         duration = mipmodel.getVarByName(f"Tt_{j}_{i}_{f}").X
