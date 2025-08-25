@@ -129,7 +129,7 @@ if mipmodel.status in [GRB.OPTIMAL, GRB.TIME_LIMIT, GRB.INTERRUPTED]:
         for j in J:
             for i in OJ[(f, j)]:
                 for w in W[f-1]:
-                    var = mipmodel.getVarByName(f"Z_w_{j}_{i}_{f}_{w}")
+                    var = mipmodel.getVarByName(f"W_{j}_{i}_{f}_{w}")
                     if var is not None and var.X > 0.5:
                         start = mipmodel.getVarByName(f"ST_{j}_{i}_{f}").X
                         duration = mipmodel.getVarByName(f"Tt_{j}_{i}_{f}").X
