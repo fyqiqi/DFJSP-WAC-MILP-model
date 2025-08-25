@@ -144,15 +144,18 @@ def MIPModel(Data):
                                     name=f"w_lower_{j1}_{i1}_{j2}_{i2}_{k}"
                                 )
     for f in F:
-        for k in M[f-1]:
+        for k in M[f - 1]:
             for j1 in J:
                 for j2 in J:
-                    for i1 in OJ[(f,j1)]:
-                        for i2 in OJ[(f,j2)]:
-                            if (j1, i1) != (j2, i2) and k in operations_machines[f,j1, i1] and k in operations_machines[f,j2, i2]:
+                    for i1 in OJ[(f, j1)]:
+                        for i2 in OJ[(f, j2)]:
+                            if (j1, i1) != (j2, i2):
+                                # Ensure YP is 1 only when L[j1, i1, j2, i2, f, r] == 1
                                 model.addConstr(
-                                    YP[j1, i1, j2, i2, f, k] + YP[j2, i2, j1, i1, f, k] == L[j1, i1, j2, i2, f, k],
-                                    name=f"AGV_order_Ztex_{j1}_{i1}_{j2}_{i2}_{f}_{k}"
+                                    (L[j1, i1, j2, i2, f, k] == 1) >> (
+                                            YP[j1, i1, j2, i2, f, k] + YP[j2, i2, j1, i1, f, k] == 1
+                                    ),
+                                    name=f"YP_active_{j1}_{i1}_{j2}_{i2}_{f}_{k}"
                                 )
 
     #VP约束，
@@ -280,15 +283,14 @@ def MIPModel(Data):
                 prev_i = OJ[(f,j)][idx-1]
                 model.addConstr(
                     eta[j, i,f] == X[j,f] - quicksum(
-                        YP[j,prev_i,j,i,f,k]
+                        YP[j, prev_i, j, i,f, k]
                         for k in operations_machines[f,j, prev_i]
                         if k in operations_machines[f,j, i]
-                    # eta[j,i,f] == X[j,f] - quicksum(YP[j,prev_i,j,i,f,k]+YP[j,i,j,prev_i,f,k] for k in M[f-1]
+                    # eta[j,i,f] == X[j,f] - quicksum(YP[j,prev_i,j,i,f,k] for k in M[f-1]
                     ),
                     f"eta_{j}_{i}"
                 )
     #约束6
-    # 4. 运输 (Sub-problem 3)
     for f in F:
         for j in J:
             for i in OJ[(f,j)]:
@@ -296,26 +298,30 @@ def MIPModel(Data):
                     quicksum(Z[j, i,f, r] for r in A[f-1])+quicksum(W[j, i,f, w] for w in Worker[f-1]) == eta[j, i,f],
                     f"AGV_assignment_{j}_{i}"
                 )
-    #约束 7
-    # 7. 同一机器上的工序顺序约束（新增）
+    # 约束7
     for f in F:
-        for k in M[f-1]:  # 遍历所有机器
-            # 收集所有可能分配到机器k的工序
+        for k in M[f - 1]:
             ops_on_k = [
                 (j, i)
                 for j in J
                 for i in OJ.get((f, j), [])
                 if k in operations_machines.get((f, j, i), [])
-            ]            # 生成所有可能的工序对
+            ]
             for idx1 in range(len(ops_on_k)):
                 for idx2 in range(idx1 + 1, len(ops_on_k)):
                     j1, i1 = ops_on_k[idx1]
                     j2, i2 = ops_on_k[idx2]
-                    # 约束1: j1在j2之前
+                    # 原有约束：j1在j2之前
                     model.addConstr(
-                        SO[j2, i2,f] >= SO[j1, i1,f] + operations_times[f,j1, i1, k]
-                        - largeM * (1 - YP[j1,i1,j2,i2,f,k]),
+                        SO[j2, i2, f] >= SO[j1, i1, f] + operations_times[f, j1, i1, k] - largeM * (
+                                    1 - YP[j1, i1, j2, i2, f, k]),
                         name=f"machine_order_forward_{j1}_{i1}_{j2}_{i2}_{k}"
+                    )
+                    # 新增约束：j2在j1之前
+                    model.addConstr(
+                        SO[j1, i1, f] >= SO[j2, i2, f] + operations_times[f, j2, i2, k] - largeM * (
+                                    1 - YP[j2, i2, j1, i1, f, k]),
+                        name=f"machine_order_backward_{j1}_{i1}_{j2}_{i2}_{k}"
                     )
     #约束8
     #运输时间在加工完成之后
