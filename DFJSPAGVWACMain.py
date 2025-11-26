@@ -146,11 +146,13 @@ if mipmodel.status in [GRB.OPTIMAL, GRB.TIME_LIMIT, GRB.INTERRUPTED]:
     # 绘制甘特图（为每个工厂创建单独的图）
     for f in F:
         plt.figure(figsize=(12, 8))
-        plt.title(f'Schedule Gantt Chart - Factory {f}')
+        plt.title(f'Schedule Gantt Chart - Factory {f}', fontsize=15)
 
         y_ticks = []
         y_labels = []
-        colors = plt.cm.tab20.colors
+        import seaborn as sns
+
+        colors = sns.color_palette("pastel", n_colors=20)  # 柔和的颜色
         current_y = 0
 
         # 绘制该工厂的机器
@@ -180,16 +182,41 @@ if mipmodel.status in [GRB.OPTIMAL, GRB.TIME_LIMIT, GRB.INTERRUPTED]:
             y_labels.append(f"Worker {w}")
             if f"{f}_{w}" in worker_schedule:
                 for task in worker_schedule[f"{f}_{w}"]:
-                    pattern = '//' if task['type'] == 'monitor' else '\\\\'
-                    bar = plt.barh(current_y, task['duration'], left=task['start'],
-                                   color=colors[task['job'] % 20], edgecolor='black',
-                                   alpha=0.7, hatch=pattern)
+                    if task['type'] == 'monitor':
+                        # Do nothing for monitor tasks
+                        bar = plt.barh(current_y, task['duration'], left=task['start'],
+                                       color=colors[task['job'] % 20], edgecolor='black',
+                                       alpha=0.7)
+                    else:
+                        # Add a bar and overlay the letter "T"
+                        bar = plt.barh(current_y, task['duration'], left=task['start'],
+                                       color=colors[task['job'] % 20], edgecolor='black',
+                                       alpha=0.7)
+                        plt.text(task['start'] + task['duration'] / 2, current_y, 'T',
+                                 ha='center', va='center', fontsize=15, color='black')
             current_y += 2
+        # Create a dictionary to map job IDs to colors
+        job_colors = {}
+        for job_id in range(1, len(J) + 1):  # Assuming job IDs start from 1
+            job_colors[job_id] = colors[job_id % 20]
 
+        # Add a legend for job colors
+        for job_id, color in job_colors.items():
+            plt.bar(0, 0, color=color, label=f'Job {job_id}')  # Invisible bars for legend
+
+        plt.legend(
+            loc="upper center",
+            bbox_to_anchor=(0.5, 1.15),  # Centered above the chart
+            ncol=len(J),  # Number of columns equal to the number of jobs
+            prop={'size': 15}
+        )
+        plt.xlim(left=0)  # Ensure x-axis starts from 0
         plt.yticks(y_ticks, y_labels)
-        plt.xlabel('Time')
-        plt.ylabel('Resources')
-        plt.grid(True)
+        plt.xticks(fontsize=14)  # 修改 x 轴刻度字体大小
+        plt.yticks(fontsize=14)  # 修改 y 轴刻度字体大小
+        plt.xlabel('Time', fontsize=15)
+        plt.ylabel('Resources', fontsize=15)
+        plt.grid(False)
         plt.show()
 
 else:
