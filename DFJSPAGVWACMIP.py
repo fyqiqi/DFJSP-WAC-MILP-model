@@ -283,9 +283,9 @@ def MIPModel(Data):
                 prev_i = OJ[(f,j)][idx-1]
                 model.addConstr(
                     eta[j, i,f] == X[j,f] - quicksum(
-                        YP[j, prev_i, j, i,f, k]
-                        for k in operations_machines[f,j, prev_i]
-                        if k in operations_machines[f,j, i]
+                        Y[j, i, f, k] * Y[j, prev_i, f, k]
+                        for k in operations_machines[f, j, prev_i]
+                        if k in operations_machines[f, j, i]
                     # eta[j,i,f] == X[j,f] - quicksum(YP[j,prev_i,j,i,f,k] for k in M[f-1]
                     ),
                     f"eta_{j}_{i}"
@@ -448,8 +448,8 @@ def MIPModel(Data):
                                         model.addConstr(
                                             SR[j2, i2, f] >= (SR[j1, i1, f] + operations_times[f, j1, i1, k1] / 2 +
                                                               TT[k1][k2]
-                                                              - largeM * (3 - VP[j1, i1, j2, i2, f, w]
-                                                                          - V[j1, i1, f, w] - V[j2, i2, f, w]
+                                                              - largeM * (5 - VP[j1, i1, j2, i2, f, w]
+                                                                          - V[j1, i1, f, w] - V[j2, i2, f, w] - Y[j1, i1, f, k1] - Y[j2, i2, f, k2]
                                                                           )),
                                             f"worker_move_{j1}_{i1}_{j2}_{i2}_{w}_{k1}_{k2}"
                                         )
